@@ -1,5 +1,6 @@
-# Login-Cracker
-Python Login Cracker WIP
+# Login-Cracker 
+## WIP
+Python Login Cracker 
 - Bruteforce
 - Dictionary
 - Hybrid
