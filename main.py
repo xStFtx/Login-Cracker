@@ -16,159 +16,151 @@ DEFAULT_NUM_PROCESSES = 4
 DEFAULT_EXIT_ON_FIRST_MATCH = True
 DEFAULT_LOGGING_LEVEL = logging.INFO
 
-parser = argparse.ArgumentParser(description="Parallel Login Cracker")
-parser.add_argument("--host", default="example.com", help="Target host")
-parser.add_argument("--port", type=int, default=80, help="Target port")
-parser.add_argument("--username", default="admin", help="Target username")
-parser.add_argument("--password", default="12345", help="Target password to crack")
-parser.add_argument("--charset", default=string.ascii_letters + string.digits + string.punctuation,
-                    help="Character set for brute force")
-parser.add_argument("--threads", type=int, default=DEFAULT_NUM_THREADS, help="Number of threads")
-parser.add_argument("--processes", type=int, default=DEFAULT_NUM_PROCESSES, help="Number of processes")
-parser.add_argument("--password-length", type=int, default=DEFAULT_PASSWORD_LENGTH, help="Password length")
-parser.add_argument("--exit-on-first-match", action="store_true", help="Exit on first valid login match")
-parser.add_argument("--log-file", default="login_cracker.log", help="Log file path")
-parser.add_argument("--log-level", default=DEFAULT_LOGGING_LEVEL, help="Logging level")
-parser.add_argument("--attack-mode", choices=["dictionary", "hybrid", "bruteforce"], default="bruteforce",
-                    help="Password cracking mode (dictionary, hybrid, bruteforce)")
-parser.add_argument("--dictionary-file", help="Path to the dictionary file for dictionary and hybrid attacks")
+class LoginCracker:
+    def __init__(self, args):
+        self.args = args
+        self.exit_event = multiprocessing.Event()
+        self.result_queue = multiprocessing.Queue()
+        self.custom_charset = args.charset
 
-args = parser.parse_args()
+        self.init_logging()
 
-TARGET_HOST = args.host
-TARGET_PORT = args.port
-exit_event = multiprocessing.Event()
+    def init_logging(self):
+        self.logger = logging.getLogger("login_cracker")
+        self.logger.setLevel(self.args.log_level)
 
-logging.basicConfig(
-    filename=args.log_file,
-    level=args.log_level,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(self.args.log_level)
 
-def socks_proxy_thread(target_host, target_port):
-    try:
-        with socks.socksocket(socket.AF_INET, socket.SOCK_STREAM) as proxy_client:
-            proxy_client.set_proxy(socks.SOCKS5, "localhost", 1080)
-            proxy_client.connect((target_host, target_port))
-            proxy_client.send(f"GET / HTTP/1.1\r\nHost: {target_host}\r\n\r\n".encode())
-            response = proxy_client.recv(4096)
-            print(response.decode("utf-8"))
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        stream_handler.setFormatter(formatter)
 
-    except Exception as e:
-        logging.error(f"Proxy thread error: {e}")
+        self.logger.addHandler(stream_handler)
 
-    finally:
-        exit_event.set()
+    def socks_proxy_thread(self, target_host, target_port):
+        try:
+            with socks.socksocket(socket.AF_INET, socket.SOCK_STREAM) as proxy_client:
+                proxy_client.set_proxy(socks.SOCKS5, "localhost", 1080)
+                proxy_client.connect((target_host, target_port))
+                proxy_client.send(f"GET / HTTP/1.1\r\nHost: {target_host}\r\n\r\n".encode())
+                response = proxy_client.recv(4096)
+                print(response.decode("utf-8"))
 
-def is_valid_login(username, password):
-    return username == args.username and password == args.password
+        except Exception as e:
+            self.logger.error(f"Proxy thread error: {e}")
 
-def dictionary_attack(username, dictionary_file):
-    with open(dictionary_file, 'r') as file:
-        for password in file.readlines():
-            password = password.strip()
-            if is_valid_login(username, password):
-                return username, password
-    return None
+        finally:
+            self.exit_event.set()
 
-def hybrid_attack(username, dictionary_file, charset, password_length, result_queue):
-    dictionary_result = dictionary_attack(username, dictionary_file)
-    if dictionary_result:
-        result_queue.put(dictionary_result)
-        if args.exit_on_first_match:
-            exit_event.set()
-    else:
-        brute_force_result = brute_force_attack(username, charset, password_length)
-        if brute_force_result:
-            result_queue.put(brute_force_result)
-            if args.exit_on_first_match:
-                exit_event.set()
+    def is_valid_login(self, username, password):
+        return username == self.args.username and password == self.args.password
 
-def brute_force_attack(username, charset, password_length):
-    possibilities = itertools.product(charset, repeat=password_length)
-    for candidate in possibilities:
-        if exit_event.is_set():
-            return None
-        candidate_password = ''.join(candidate)
-        if is_valid_login(username, candidate_password):
-            return username, candidate_password
-    return None
+    def dictionary_attack(self):
+        with open(self.args.dictionary_file, 'r') as file:
+            for password in file.readlines():
+                password = password.strip()
+                if self.is_valid_login(self.args.username, password):
+                    return self.args.username, password
+        return None
+
+    def hybrid_attack(self):
+        dictionary_result = self.dictionary_attack()
+        if dictionary_result:
+            self.result_queue.put(dictionary_result)
+            if self.args.exit_on_first_match:
+                self.exit_event.set()
+        else:
+            self.brute_force_attack()
+
+    def brute_force_attack(self):
+        possibilities = itertools.product(self.custom_charset, repeat=self.args.password_length)
+        total_passwords = len(self.custom_charset) ** self.args.password_length
+        tried_passwords = 0
+
+        for candidate in possibilities:
+            if self.exit_event.is_set():
+                return None
+            candidate_password = ''.join(candidate)
+            tried_passwords += 1
+
+            if self.is_valid_login(self.args.username, candidate_password):
+                self.result_queue.put((self.args.username, candidate_password))
+                if self.args.exit_on_first_match:
+                    self.exit_event.set()
+                    break
+
+        return None
+
+    def track_progress(self, progress):
+        sys.stdout.write(f"\rProgress: {progress * 100:.2f}%")
+        sys.stdout.flush()
+
+    def run(self):
+        threads = []
+        for _ in range(self.args.threads):
+            thread = threading.Thread(target=self.socks_proxy_thread, args=(self.args.host, self.args.port))
+            threads.append(thread)
+            thread.start()
+
+        try:
+            for thread in threads:
+                thread.join()
+
+            start_time = time.time()
+
+            if self.args.attack_mode == 'dictionary':
+                result = self.dictionary_attack()
+            elif self.args.attack_mode == 'hybrid':
+                hybrid_process = multiprocessing.Process(
+                    target=self.hybrid_attack,
+                )
+                hybrid_process.start()
+                hybrid_process.join()
+                result = self.result_queue.get()
+            elif self.args.attack_mode == 'bruteforce':
+                brute_force_process = multiprocessing.Process(
+                    target=self.brute_force_attack,
+                )
+                brute_force_process.start()
+                brute_force_process.join()
+                result = self.result_queue.get()
+            else:
+                print("Invalid attack mode. Please use 'dictionary', 'hybrid', or 'bruteforce'.")
+                sys.exit(1)
+
+            end_time = time.time()
+
+            if result:
+                print(f"\nLogin cracked - Username: {result[0]}, Password: {result[1]}")
+            else:
+                print("Login not found.")
+
+            execution_time = end_time - start_time
+            print(f"Execution time: {execution_time:.2f} seconds")
+
+        except KeyboardInterrupt:
+            self.logger.info("Received KeyboardInterrupt. Exiting gracefully...")
+            self.exit_event.set()
+            sys.exit(0)
 
 if __name__ == "__main__":
-    custom_charset = args.charset
+    parser = argparse.ArgumentParser(description="Parallel Login Cracker")
+    parser.add_argument("--host", default="example.com", help="Target host")
+    parser.add_argument("--port", type=int, default=80, help="Target port")
+    parser.add_argument("--username", default="admin", help="Target username")
+    parser.add_argument("--password", default="12345", help="Target password to crack")
+    parser.add_argument("--charset", default=string.ascii_letters + string.digits + string.punctuation,
+                        help="Character set for brute force")
+    parser.add_argument("--threads", type=int, default=DEFAULT_NUM_THREADS, help="Number of threads")
+    parser.add_argument("--processes", type=int, default=DEFAULT_NUM_PROCESSES, help="Number of processes")
+    parser.add_argument("--password-length", type=int, default=DEFAULT_PASSWORD_LENGTH, help="Password length")
+    parser.add_argument("--exit-on-first-match", action="store_true", help="Exit on the first valid login match")
+    parser.add_argument("--log-level", default=DEFAULT_LOGGING_LEVEL, help="Logging level")
+    parser.add_argument("--attack-mode", choices=["dictionary", "hybrid", "bruteforce"], default="bruteforce",
+                        help="Password cracking mode (dictionary, hybrid, bruteforce)")
+    parser.add_argument("--dictionary-file", help="Path to the dictionary file for dictionary and hybrid attacks")
 
-    threads = []
-    for _ in range(args.threads):
-        thread = threading.Thread(target=socks_proxy_thread, args=(TARGET_HOST, TARGET_PORT))
-        threads.append(thread)
-        thread.start()
+    args = parser.parse_args()
 
-    try:
-        for thread in threads:
-            thread.join()
-
-        start_time = time.time()
-
-        if args.attack_mode == 'dictionary':
-            result = dictionary_attack(args.username, args.dictionary_file)
-        elif args.attack_mode == 'hybrid':
-            result = hybrid_attack(args.username, args.dictionary_file, custom_charset, args.password_length, result_queue)
-        elif args.attack_mode == 'bruteforce':
-            result = brute_force_attack(args.username, custom_charset, args.password_length)
-        else:
-            print("Invalid attack mode. Please use 'dictionary', 'hybrid', or 'bruteforce'.")
-            sys.exit(1)
-
-        end_time = time.time()
-
-        if result:
-            print(f"Login cracked - Username: {result[0]}, Password: {result[1]}")
-        else:
-            print("Login not found.")
-
-        execution_time = end_time - start_time
-        print(f"Execution time: {execution_time:.2f} seconds")
-
-    except KeyboardInterrupt:
-        logging.info("Received KeyboardInterrupt. Exiting gracefully...")
-        exit_event.set()
-        sys.exit(0)
-if __name__ == "__main__":
-    custom_charset = args.charset
-
-    threads = []
-    for _ in range(args.threads):
-        thread = threading.Thread(target=socks_proxy_thread, args=(TARGET_HOST, TARGET_PORT))
-        threads.append(thread)
-        thread.start()
-
-    try:
-        for thread in threads:
-            thread.join()
-
-        start_time = time.time()
-
-        if args.attack_mode == 'dictionary':
-            result = dictionary_attack(args.username, args.dictionary_file)
-        elif args.attack_mode == 'hybrid':
-            result = hybrid_attack(args.username, args.dictionary_file, custom_charset, args.password_length, result_queue)
-        elif args.attack_mode == 'bruteforce':
-            result = brute_force_attack(args.username, custom_charset, args.password_length)
-        else:
-            print("Invalid attack mode. Please use 'dictionary', 'hybrid', or 'bruteforce'.")
-            sys.exit(1)
-
-        end_time = time.time()
-
-        if result:
-            print(f"Login cracked - Username: {result[0]}, Password: {result[1]}")
-        else:
-            print("Login not found.")
-
-        execution_time = end_time - start_time
-        print(f"Execution time: {execution_time:.2f} seconds")
-
-    except KeyboardInterrupt:
-        logging.info("Received KeyboardInterrupt. Exiting gracefully...")
-        exit_event.set()
-        sys.exit(0)
+    login_cracker = LoginCracker(args)
+    login_cracker.run()
