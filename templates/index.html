@@ -1,106 +1,161 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Cracker Web Interface</title>
     <style>
+        :root {
+            --text-color: #000;
+            --bg-color: #fff;
+            --card-color: #f8f9fa;
+            --header-bg-color: #e2e6ea;
+        }
+
+        [data-theme="dark"] {
+            --text-color: #fff;
+            --bg-color: #343a40;
+            --card-color: #212529;
+            --header-bg-color: #1c1f23;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
 
-        h1 {
-            text-align: center;
-            margin-top: 20px;
+        .card {
+            background-color: var(--card-color);
         }
 
-        form {
-            max-width: 400px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        .card-header {
+            background-color: var(--header-bg-color);
         }
 
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        input[type="password"],
-        select {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-        }
-
-        input[type="checkbox"] {
-            margin-right: 5px;
-        }
-
-        input[type="submit"] {
-            background-color: #007BFF;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-
-        input[type="submit"]:hover {
-            background-color: #0056b3;
+        #dictionary_div {
+            display: none;
         }
     </style>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-    <h1>Login Cracker Web Interface</h1>
-    <form method="POST">
-        <label for="host">Host:</label>
-        <input type="text" name="host" required><br>
+<body class="bg-light">
 
-        <label for="port">Port:</label>
-        <input type="number" name="port" required><br>
+<div class="container py-5">
+    <h1 class="text-center mb-4">Login Cracker Web Interface</h1>
+    
+    <div class="row">
+        <div class="col-md-8 m-auto">
+            <div class="card">
+                <div class="card-header">Configuration</div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="host">Host:</label>
+                            <input type="text" id="host" name="host" class="form-control" placeholder="e.g. 192.168.1.1" required>
+                        </div>
 
-        <label for="username">Username:</label>
-        <input type="text" name="username" required><br>
+                        <div class="form-group">
+                            <label for="port">Port:</label>
+                            <input type="number" id="port" name="port" class="form-control" min="1" placeholder="e.g. 22" required>
+                        </div>
 
-        <label for="password">Password:</label>
-        <input type="password" name="password" required><br>
+                        <div class="form-group">
+                            <label for="username">Username:</label>
+                            <input type="text" id="username" name="username" class="form-control" placeholder="e.g. root" required>
+                        </div>
 
-        <label for="charset">Charset:</label>
-        <input type="text" name="charset" required><br>
+                        <div class="form-group">
+                            <label for="password">Password (Optional):</label>
+                            <input type="password" id="password" name="password" class="form-control" placeholder="Known password or leave empty">
+                        </div>
 
-        <label for="threads">Threads:</label>
-        <input type="number" name="threads" required><br>
+                        <div class="form-group">
+                            <label for="charset">Charset:</label>
+                            <input type="text" id="charset" name="charset" class="form-control" placeholder="e.g. abc123" required>
+                        </div>
 
-        <label for="processes">Processes:</label>
-        <input type="number" name="processes" required><br>
+                        <div class="form-group">
+                            <label for="threads">Threads:</label>
+                            <input type="number" id="threads" name="threads" class="form-control" min="1" placeholder="e.g. 4" required>
+                        </div>
 
-        <label for="password_length">Password Length:</label>
-        <input type="number" name="password_length" required><br>
+                        <div class="form-group">
+                            <label for="processes">Processes:</label>
+                            <input type="number" id="processes" name="processes" class="form-control" min="1" placeholder="e.g. 4" required>
+                        </div>
 
-        <label for="exit_on_first_match">Exit on First Match:</label>
-        <input type="checkbox" name="exit_on_first_match"><br>
+                        <div class="form-group">
+                            <label for="password_length">Password Length:</label>
+                            <input type="number" id="password_length" name="password_length" class="form-control" min="1" placeholder="e.g. 8" required>
+                        </div>
 
-        <label for="attack_mode">Attack Mode:</label>
-        <select name="attack_mode">
-            <option value="mode1">Mode 1</option>
-            <option value="mode2">Mode 2</option>
-            <!-- Add more options as needed -->
-        </select><br>
+                        <div class="form-group">
+                            <label for="exit_on_first_match">Exit on First Match:</label>
+                            <input type="checkbox" id="exit_on_first_match" name="exit_on_first_match" class="form-check-input">
+                        </div>
 
-        <label for="dictionary_file">Dictionary File:</label>
-        <input type="text" name="dictionary_file" required><br>
+                        <div class="form-group">
+                            <label for="attack_mode">Attack Mode:</label>
+                            <select id="attack_mode" name="attack_mode" class="form-control">
+                                <option value="bruteforce">Brute Force</option>
+                                <option value="dict">Dictionary</option>
+                                <option value="hybrid">Hybrid</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="dictionary_div">
+                            <label for="dictionary_file">Dictionary File:</label>
+                            <input type="text" id="dictionary_file" name="dictionary_file" class="form-control" placeholder="Path to dictionary file">
+                        </div>
 
-        <input type="submit" value="Start Attack">
-    </form>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-block">Start Attack</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="mt-3">
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-warning" role="alert">
+                    {{ message }}
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const attackMode = document.querySelector("#attack_mode");
+        const dictionaryDiv = document.querySelector("#dictionary_div");
+        const themeToggle = document.querySelector("#themeToggle");
+
+        attackMode.addEventListener("change", function() {
+            dictionaryDiv.style.display = ["hybrid", "dict"].includes(attackMode.value) ? "block" : "none";
+        });
+
+        themeToggle.addEventListener("click", function() {
+            const isDarkMode = document.documentElement.getAttribute("data-theme") === "dark";
+            document.documentElement.setAttribute("data-theme", isDarkMode ? "" : "dark");
+            themeToggle.innerText = isDarkMode ? "Toggle Dark Mode" : "Toggle Light Mode";
+        });
+
+        // Initial setting
+        attackMode.dispatchEvent(new Event("change"));
+    });
+</script>
+
 </body>
+
 </html>
