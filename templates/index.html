@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Cracker Web Interface</title>
+</head>
+<body>
+    <h1>Login Cracker Web Interface</h1>
+    <form method="POST">
+        <label for="host">Host:</label>
+        <input type="text" name="host" required><br>
+
+        <label for="port">Port:</label>
+        <input type="number" name="port" required><br>
+
+        <label for="username">Username:</label>
+        <input type="text" name="username" required><br>
+
+        <label for="password">Password:</label>
+        <input type="password" name="password" required><br>
+
+        <label for="charset">Charset:</label>
+        <input type="text" name="charset" required><br>
+
+        <label for="threads">Threads:</label>
+        <input type="number" name="threads" required><br>
+
+        <label for="processes">Processes:</label>
+        <input type="number" name="processes" required><br>
+
+        <label for="password_length">Password Length:</label>
+        <input type="number" name="password_length" required><br>
+
+        <label for="exit_on_first_match">Exit on First Match:</label>
+        <input type="checkbox" name="exit_on_first_match"><br>
+
+        <label for="attack_mode">Attack Mode:</label>
+        <select name="attack_mode">
+            <option value="mode1">Mode 1</option>
+            <option value="mode2">Mode 2</option>
+            <!-- Add more options as needed -->
+        </select><br>
+
+        <label for="dictionary_file">Dictionary File:</label>
+        <input type="text" name="dictionary_file" required><br>
+
+        <input type="submit" value="Start Attack">
+    </form>
+</body>
+</html>
