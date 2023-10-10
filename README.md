@@ -13,7 +13,7 @@ pip install -r requirements.txt
 ```
 
 ## Two ways:
-I am making it command line accesible with argparse ```python main.py```(with the args as seen below) or you can use ```python app.py``` to use it on a Flask server.
+I am making it command line accesible with argparse ```python main.py```(with the args as seen below) or you can use ```python app.py``` to run a Flask server.
 
 ## Parallel Login Cracker Command-Line Arguments
 
