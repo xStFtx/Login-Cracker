@@ -8,41 +8,54 @@
     <style>
         :root {
             --text-color: #000;
-            --bg-color: #fff;
-            --card-color: #f8f9fa;
-            --header-bg-color: #e2e6ea;
+            --bg-color: #f8f9fa;
+            --card-color: #ffffff;
+            --header-bg-color: #007bff;
+            --header-text-color: #ffffff;
         }
 
         [data-theme="dark"] {
-            --text-color: #fff;
+            --text-color: #ffffff;
             --bg-color: #343a40;
             --card-color: #212529;
             --header-bg-color: #1c1f23;
+            --header-text-color: #ffffff;
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
+            font-family: Arial, sans-serif;
         }
 
         .card {
             background-color: var(--card-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         .card-header {
             background-color: var(--header-bg-color);
+            color: var(--header-text-color);
+            font-weight: bold;
         }
 
         #dictionary_div {
             display: none;
         }
+
+        #themeToggle {
+            cursor: pointer;
+        }
     </style>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-light">
 
-<div class="container py-5">
-    <h1 class="text-center mb-4">Login Cracker Web Interface</h1>
+<body>
+
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Login Cracker Web Interface</h1>
+        </div>
     
     <div class="row">
         <div class="col-md-8 m-auto">
@@ -150,8 +163,6 @@
             document.documentElement.setAttribute("data-theme", isDarkMode ? "" : "dark");
             themeToggle.innerText = isDarkMode ? "Toggle Dark Mode" : "Toggle Light Mode";
         });
-
-        // Initial setting
         attackMode.dispatchEvent(new Event("change"));
     });
 </script>
